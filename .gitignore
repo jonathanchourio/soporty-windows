@@ -1,0 +1,5 @@
+/src-tauri/target/
+/src-tauri/gen/
+Cargo.lock
+node_modules/
+*.exe

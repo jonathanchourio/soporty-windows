@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soporty</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="logo"></div>
+    <div class="ttl"><b id="title">Soporty</b><small id="sub"></small></div>
+    <span class="timer" id="timer" hidden>00:00</span>
+  </header>
+
+  <!-- Entrar -->
+  <section class="card" id="panelJoin">
+    <h2>Sesión de soporte</h2>
+    <p class="muted">Escribe el código de 9 números que te dio tu técnico.</p>
+    <input id="code" class="code" inputmode="numeric" maxlength="11" placeholder="123 456 789" autocomplete="off">
+    <input id="name" class="inp" placeholder="Tu nombre" autocomplete="off">
+    <label class="chk"><input type="checkbox" id="consent"> <span>Autorizo que el técnico me escuche y vea mi pantalla solo cuando yo la comparta. Puedo terminar cuando quiera.</span></label>
+    <div id="joinErr" class="err" hidden></div>
+    <button id="btnJoin" class="btn block">Entrar a la sesión</button>
+    <details class="srv"><summary>Servidor</summary>
+      <input id="server" class="inp mono" placeholder="https://soporty.com">
+      <small class="muted">Déjalo así salvo que tu técnico te indique otra dirección.</small>
+    </details>
+    <p class="muted tiny">El técnico solo verá lo que compartas. Pedirá tu permiso antes de controlar tu equipo, y podrás cortarlo cuando quieras.</p>
+  </section>
+
+  <!-- Sesión -->
+  <section id="panelSession" hidden>
+    <div class="status" id="status"><span class="dot"></span><span id="statusText">Conectando…</span></div>
+
+    <div class="card" id="lastBox" hidden>
+      <small class="muted" id="lastWho"></small>
+      <div id="lastBody"></div>
+    </div>
+
+    <div class="card">
+      <button id="btnShare" class="btn block">Compartir mi pantalla</button>
+      <button id="btnMic" class="btn sec block">Micrófono activo · tocar para silenciar</button>
+      <p class="muted tiny" id="shareTip">Al compartir, elige <b>“Toda la pantalla”</b> para que tu técnico pueda ayudarte mejor.</p>
+    </div>
+
+    <div class="card chatcard">
+      <b>Chat con tu técnico</b>
+      <div id="chatLog" class="chatlog"></div>
+      <form id="chatForm" class="chatform" autocomplete="off">
+        <input id="msg" class="inp" placeholder="Escribe un mensaje…" maxlength="2000">
+        <button class="btn sec">Enviar</button>
+      </form>
+    </div>
+
+    <button id="btnEnd" class="btn danger block">Terminar sesión</button>
+  </section>
+
+  <!-- Fin -->
+  <section class="card" id="panelEnded" hidden>
+    <h2>La sesión terminó</h2>
+    <p class="muted">Gracias por tu tiempo.</p>
+    <div class="rate" id="rate">
+      <b>¿Cómo te atendimos?</b>
+      <div class="stars" id="stars"><span data-r="1">★</span><span data-r="2">★</span><span data-r="3">★</span><span data-r="4">★</span><span data-r="5">★</span></div>
+      <button id="btnRate" class="btn block" disabled>Enviar calificación</button>
+    </div>
+    <button id="btnNew" class="btn sec block">Nueva sesión</button>
+  </section>
+</div>
+
+<!-- Aviso de permiso de control -->
+<div class="modal-bg" id="mControl" hidden>
+  <div class="modal">
+    <h3>Tu técnico pide controlar tu equipo</h3>
+    <p class="muted">Podrá mover el mouse y escribir en tu computadora para ayudarte. Mientras dure verás una barra arriba y podrás detenerlo cuando quieras.</p>
+    <button id="btnCtlYes" class="btn block">Permitir control</button>
+    <button id="btnCtlNo" class="btn sec block">Ahora no</button>
+  </div>
+</div>
+
+<audio id="ra" autoplay></audio>
+<video id="selfv" hidden muted></video>
+<script src="rtc.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
