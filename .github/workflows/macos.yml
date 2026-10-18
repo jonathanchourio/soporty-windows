@@ -36,7 +36,7 @@ jobs:
           echo "APPVER=$V" >> "$GITHUB_ENV"
 
       - name: Compilar instalador universal
-        run: cargo tauri build --target universal-apple-darwin --bundles dmg app
+        run: cargo tauri build --target universal-apple-darwin --bundles dmg
 
       - name: Preparar salida
         shell: bash
