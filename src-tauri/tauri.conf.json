@@ -38,6 +38,9 @@
         "installMode": "currentUser",
         "languages": ["Spanish", "SpanishInternational", "English"]
       }
+    },
+    "macOS": {
+      "minimumSystemVersion": "11.0"
     }
   }
 }

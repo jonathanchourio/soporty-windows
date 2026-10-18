@@ -1,0 +1,52 @@
+# Compila el instalador de macOS (.dmg) en los servidores de GitHub.
+# Genera un binario universal (Intel + Apple Silicon), sin firmar.
+name: Compilar macOS
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  dmg:
+    runs-on: macos-latest
+    steps:
+      - name: Descargar el proyecto
+        uses: actions/checkout@v5
+
+      - name: Preparar Rust (Intel + Apple Silicon)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin
+
+      - name: Caché de Rust
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Instalar Tauri CLI
+        uses: cargo-bins/cargo-binstall@main
+      - run: cargo binstall -y "tauri-cli@^2.0"
+
+      - name: Poner el número de versión
+        shell: bash
+        run: |
+          V="1.0.${GITHUB_RUN_NUMBER}"
+          node -e "const f='src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$V';require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
+          echo "APPVER=$V" >> "$GITHUB_ENV"
+
+      - name: Compilar instalador universal
+        run: cargo tauri build --target universal-apple-darwin --bundles dmg app
+
+      - name: Preparar salida
+        shell: bash
+        run: |
+          mkdir -p salida
+          cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "salida/Soporty-${APPVER}-mac.dmg"
+
+      - name: Entregar el instalador
+        uses: actions/upload-artifact@v5
+        with:
+          name: soporty-mac-${{ env.APPVER }}
+          path: salida/*.dmg
+          retention-days: 30

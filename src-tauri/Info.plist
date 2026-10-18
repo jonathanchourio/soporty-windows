@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Soporty usa el micrófono para la llamada de voz con tu técnico durante la sesión de soporte.</string>
+  <key>NSCameraUsageDescription</key>
+  <string>Soporty solo usa la cámara si decides mostrarla en la sesión de soporte.</string>
+</dict>
+</plist>
