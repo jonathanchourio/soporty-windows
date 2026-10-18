@@ -10,19 +10,24 @@
 //! cliente puede cortarlo al instante. Si CONTROLLING es false, rc_apply ignora
 //! todo, así que ninguna orden llega al sistema sin permiso vigente.
 
+use std::cell::RefCell;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Mutex;
 
 use enigo::{
     Axis, Button, Coordinate, Direction, Enigo, Key, Keyboard, Mouse, Settings,
 };
 use serde::Deserialize;
-use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 /// ¿Hay una sesión de control autorizada y vigente?
 static CONTROLLING: AtomicBool = AtomicBool::new(false);
 
-struct EnigoState(Mutex<Enigo>);
+// El motor de entrada (enigo) vive en el hilo principal: en macOS no es Send,
+// así que no puede guardarse en un State compartido. Se crea una sola vez y se
+// reutiliza; la inyección siempre corre en el hilo principal (lo exige macOS).
+thread_local! {
+    static ENIGO: RefCell<Option<Enigo>> = RefCell::new(None);
+}
 
 /// Un evento de control que manda el técnico (ya convertido a píxeles físicos).
 #[derive(Deserialize)]
@@ -80,15 +85,30 @@ fn rc_stop(app: AppHandle) {
 }
 
 /// Aplica una tanda de eventos de control, solo si hay autorización vigente.
+/// Se ejecuta en el hilo principal (requerido por macOS) con un enigo reutilizado.
 #[tauri::command]
-fn rc_apply(state: State<EnigoState>, events: Vec<Ev>) {
+fn rc_apply(app: AppHandle, events: Vec<Ev>) {
     if !CONTROLLING.load(Ordering::SeqCst) {
         return;
     }
-    let mut enigo = match state.0.lock() {
-        Ok(g) => g,
-        Err(_) => return,
-    };
+    let _ = app.run_on_main_thread(move || apply_events(events));
+}
+
+fn apply_events(events: Vec<Ev>) {
+    ENIGO.with(|cell| {
+        let mut slot = cell.borrow_mut();
+        if slot.is_none() {
+            *slot = Enigo::new(&Settings::default()).ok();
+        }
+        let enigo = match slot.as_mut() {
+            Some(e) => e,
+            None => return,
+        };
+        apply_with(enigo, events);
+    });
+}
+
+fn apply_with(enigo: &mut Enigo, events: Vec<Ev>) {
     for ev in events {
         match ev.t.as_str() {
             "move" => {
@@ -187,12 +207,6 @@ fn map_key(name: &str) -> Option<Key> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .setup(|app| {
-            let enigo = Enigo::new(&Settings::default())
-                .map_err(|e| format!("No se pudo iniciar el control de entrada: {e}"))?;
-            app.manage(EnigoState(Mutex::new(enigo)));
-            Ok(())
-        })
         .invoke_handler(tauri::generate_handler![
             rc_screen, rc_start, rc_stop, rc_apply
         ])
