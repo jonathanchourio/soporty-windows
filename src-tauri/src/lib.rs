@@ -205,11 +205,57 @@ fn map_key(name: &str) -> Option<Key> {
     Some(k)
 }
 
+/* ------------------------------------------------------- marcas del técnico */
+/// Capa transparente a pantalla completa, siempre encima y que deja pasar el mouse,
+/// donde se dibujan el puntero y los trazos del técnico sobre el escritorio.
+#[tauri::command]
+fn ann_show(app: AppHandle) -> Result<(), String> {
+    if app.get_webview_window("ann").is_some() {
+        return Ok(());
+    }
+    let (w, h) = match app.primary_monitor() {
+        Ok(Some(m)) => {
+            let s = m.size();
+            let f = m.scale_factor();
+            (s.width as f64 / f, s.height as f64 / f)
+        }
+        _ => (1920.0, 1080.0),
+    };
+    let win = WebviewWindowBuilder::new(&app, "ann", WebviewUrl::App("ann.html".into()))
+        .title("Soporty")
+        .position(0.0, 0.0)
+        .inner_size(w, h)
+        .decorations(false)
+        .transparent(true)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .resizable(false)
+        .focused(false)
+        .shadow(false)
+        .build()
+        .map_err(|e| format!("No se pudo crear la capa de marcas: {e}"))?;
+    let _ = win.set_ignore_cursor_events(true);
+    Ok(())
+}
+
+#[tauri::command]
+fn ann_hide(app: AppHandle) {
+    if let Some(w) = app.get_webview_window("ann") {
+        let _ = w.close();
+    }
+}
+
+/// Reenvía una marca (ptr / stroke / clear) a la capa de anotaciones.
+#[tauri::command]
+fn ann_push(app: AppHandle, m: serde_json::Value) {
+    let _ = app.emit_to("ann", "ann", m);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            rc_screen, rc_start, rc_stop, rc_apply
+            rc_screen, rc_start, rc_stop, rc_apply, ann_show, ann_hide, ann_push
         ])
         .run(tauri::generate_context!())
         .expect("error al iniciar Soporty");

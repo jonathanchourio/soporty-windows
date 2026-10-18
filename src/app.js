@@ -173,6 +173,7 @@
   async function stopShare() {
     if (!screen) return;
     const t = screen; screen = null; try { t.stop(); } catch (e) {}
+    annHide();
     if (controlling) stopControlLocal();
     if (room) { await room.setTrack('video', null); room.ctl({ t: 'screen', on: false }); }
     paint();
@@ -192,8 +193,15 @@
   async function sendMsg(ev) { ev.preventDefault(); const v = $('msg').value.trim(); if (!v || !room) return; $('msg').value = ''; try { await room.api('message', { body: v }); } catch (e) { showToast(e.message); } }
 
   /* ---- control remoto ---- */
+  /* ---- marcas del técnico (puntero y trazos) sobre el escritorio ---- */
+  let annReady = null;
+  function annShow() { if (!invoke) return Promise.resolve(); if (!annReady) annReady = invoke('ann_show').catch(() => { annReady = null; }); return annReady; }
+  function annHide() { annReady = null; if (invoke) invoke('ann_hide').catch(() => {}); }
+  function annPush(m) { annShow().then(() => { if (invoke) invoke('ann_push', { m }).catch(() => {}); }); }
+
   function onCtl(m) {
     const t = m.t;
+    if (t === 'ptr' || t === 'stroke' || t === 'clear') { if (screen) annPush(m); return; }
     if (t === 'rc-request') { if (screen) $('mControl').hidden = false; else room.ctl({ t: 'rc-denied', why: 'sin pantalla' }); return; }
     if (t === 'rc-release') { if (controlling) { invoke('rc_stop'); } return; }
     if (t === 'hi' && m.name) { techName = m.name; paint(); return; }
@@ -244,6 +252,7 @@
   function onEnded() {
     if (ended) return; ended = true;
     if (controlling && invoke) invoke('rc_stop');
+    annHide();
     if (screen) { try { screen.stop(); } catch (e) {} }
     if (mic) { try { mic.stop(); } catch (e) {} }
     if (room) room.stop();
