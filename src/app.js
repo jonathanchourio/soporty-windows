@@ -194,9 +194,9 @@
 
   /* ---- control remoto ---- */
   /* ---- marcas del técnico (puntero y trazos) sobre el escritorio ---- */
-  let annReady = null;
-  function annShow() { if (!invoke) return Promise.resolve(); if (!annReady) annReady = invoke('ann_show').catch(() => { annReady = null; }); return annReady; }
-  function annHide() { annReady = null; if (invoke) invoke('ann_hide').catch(() => {}); }
+  let annAt = 0;
+  function annShow() { if (!invoke) return Promise.resolve(); const now = Date.now(); if (now - annAt < 800) return Promise.resolve(); annAt = now; return invoke('ann_show').catch(() => { annAt = 0; }); }
+  function annHide() { annAt = 0; if (invoke) invoke('ann_hide').catch(() => {}); }
   function annPush(m) { annShow().then(() => { if (invoke) invoke('ann_push', { m }).catch(() => {}); }); }
 
   function onCtl(m) {

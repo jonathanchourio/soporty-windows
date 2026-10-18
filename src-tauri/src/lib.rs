@@ -232,9 +232,15 @@ fn ann_show(app: AppHandle) -> Result<(), String> {
         .resizable(false)
         .focused(false)
         .shadow(false)
+        .visible(false)   // se muestra solo si logramos que deje pasar el mouse
         .build()
         .map_err(|e| format!("No se pudo crear la capa de marcas: {e}"))?;
-    let _ = win.set_ignore_cursor_events(true);
+    // Candado 1: si no se puede hacer atravesable por el mouse, NO se muestra nunca.
+    if let Err(e) = win.set_ignore_cursor_events(true) {
+        let _ = win.close();
+        return Err(format!("La capa de marcas no puede dejar pasar el mouse en este equipo: {e}"));
+    }
+    let _ = win.show();
     Ok(())
 }
 

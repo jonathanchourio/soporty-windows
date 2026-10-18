@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <style>
-  html,body{margin:0;width:100%;height:100%;background:transparent!important;overflow:hidden;pointer-events:none}
+  html,body{margin:0;width:100%;height:100%;background:transparent!important;overflow:hidden}
   canvas{position:fixed;inset:0;width:100vw;height:100vh;display:block;pointer-events:none}
 </style>
 </head>
@@ -12,9 +12,16 @@
 <script src="rtc.js"></script>
 <script>
   (function(){
-    var marks = new SPMarks(document.getElementById('cv'));
-    window.__TAURI__.event.listen('ann', function (e) { marks.apply(e.payload); });
-    // el canvas no tiene tamaño CSS hasta el primer layout: forzar un redibujo
+    var T = window.__TAURI__, marks = new SPMarks(document.getElementById('cv')), timer = 0;
+    // Vigilante: si el técnico deja de marcar unos segundos, la capa desaparece sola.
+    // Así, pase lo que pase, nunca se queda tapando la pantalla.
+    function arm(){ clearTimeout(timer); timer = setTimeout(function(){ T.core.invoke('ann_hide'); }, 3000); }
+    T.event.listen('ann', function (e) { marks.apply(e.payload); arm(); });
+    // Candado: si esta capa recibe entrada del usuario es que NO es atravesable -> se cierra ya.
+    ['mousemove','mousedown','wheel','keydown','touchstart'].forEach(function (ev) {
+      window.addEventListener(ev, function () { T.core.invoke('ann_hide'); }, { passive: true });
+    });
+    arm();
     setTimeout(function(){ marks.draw(); }, 50);
   })();
 </script>
