@@ -11,15 +11,19 @@
   let SERVER = (localStorage.getItem('sp_server') || DEFAULT_SERVER).replace(/\/+$/, '');
   let AUTH = null; // "id:token"
 
-  /* ---- fetch hacia el servidor: URL absoluta + cabeceras de Soporty ---- */
+  /* ---- fetch: solo las peticiones a NUESTRO servidor reciben cabeceras y URL absoluta.
+   *      Las llamadas internas de Tauri (http://ipc.localhost) pasan intactas: si las tocáramos,
+   *      Tauri perdería su Tauri-Invoke-Key y el control nativo fallaría. ---- */
   const rawFetch = window.fetch.bind(window);
   window.fetch = function (url, init) {
-    init = init || {};
     let u = typeof url === 'string' ? url : (url && url.url) || '';
-    if (/^https?:/.test(u)) { /* ya absoluta */ }
-    else u = SERVER + '/' + String(u).replace(/^\//, '');
-    const h = Object.assign({}, init.headers || {}, { 'X-Soporty': '1' });
-    if (AUTH) h['X-Client-Auth'] = AUTH;
+    const absolute = /^https?:\/\//i.test(u);
+    if (absolute && u.indexOf(SERVER) !== 0) return rawFetch(url, init);
+    if (!absolute) u = SERVER + '/' + String(u).replace(/^\//, '');
+    init = Object.assign({}, init || {});
+    const h = new Headers(init.headers || undefined);
+    h.set('X-Soporty', '1');
+    if (AUTH) h.set('X-Client-Auth', AUTH);
     init.headers = h;
     return rawFetch(u, init);
   };
