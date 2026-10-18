@@ -1,5 +1,6 @@
-# Compila el instalador de macOS (.dmg) en los servidores de GitHub.
-# Genera un binario universal (Intel + Apple Silicon), sin firmar.
+# Compila la app de macOS en los servidores de GitHub.
+# Genera un binario universal (Intel + Apple Silicon), sin firmar, y lo entrega
+# como .app comprimida en .zip (evita el empaquetado .dmg, frágil en CI headless).
 name: Compilar macOS
 
 on:
@@ -8,7 +9,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  dmg:
+  app:
     runs-on: macos-latest
     steps:
       - name: Descargar el proyecto
@@ -35,18 +36,29 @@ jobs:
           node -e "const f='src-tauri/tauri.conf.json';const j=require('./'+f);j.version='$V';require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
           echo "APPVER=$V" >> "$GITHUB_ENV"
 
-      - name: Compilar instalador universal
-        run: cargo tauri build --target universal-apple-darwin --bundles dmg
-
-      - name: Preparar salida
+      - name: Compilar app universal
         shell: bash
         run: |
-          mkdir -p salida
-          cp src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg "salida/Soporty-${APPVER}-mac.dmg"
+          set -o pipefail
+          if ! cargo tauri build --target universal-apple-darwin --bundles app 2>&1 | tee /tmp/build.log; then
+            echo "::error::La compilación de macOS falló. Últimas líneas:"
+            tail -25 /tmp/build.log | while IFS= read -r l; do echo "::error::$l"; done
+            exit 1
+          fi
 
-      - name: Entregar el instalador
+      - name: Empaquetar .app en .zip
+        shell: bash
+        run: |
+          APPDIR="src-tauri/target/universal-apple-darwin/release/bundle/macos"
+          APP=$(ls -d "$APPDIR"/*.app | head -1)
+          echo "App: $APP"
+          mkdir -p salida
+          ditto -c -k --keepParent "$APP" "salida/Soporty-${APPVER}-mac.zip"
+          ls -lh salida
+
+      - name: Entregar la app
         uses: actions/upload-artifact@v5
         with:
           name: soporty-mac-${{ env.APPVER }}
-          path: salida/*.dmg
+          path: salida/*.zip
           retention-days: 30
