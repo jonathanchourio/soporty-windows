@@ -199,13 +199,16 @@
   async function grantControl() {
     $('mControl').hidden = true;
     if (!invoke) { showToast('El control no está disponible en esta versión.'); return; }
-    try {
-      const sz = await invoke('rc_screen'); screenW = sz[0] || 1920; screenH = sz[1] || 1080;
-      await invoke('rc_start');
-      controlling = true;
-      room.ctl({ t: 'rc-granted' });
-      showToast('Tu técnico está controlando tu equipo. Puedes detenerlo en la barra de arriba.');
-    } catch (e) { showToast('No se pudo iniciar el control.'); }
+    const dpr = window.devicePixelRatio || 1;
+    let sz = null;
+    try { sz = await invoke('rc_screen'); } catch (e) {}
+    screenW = (sz && sz[0]) || Math.round(screen.width * dpr) || 1920;
+    screenH = (sz && sz[1]) || Math.round(screen.height * dpr) || 1080;
+    try { await invoke('rc_start'); }
+    catch (e) { room.ctl({ t: 'rc-denied' }); showToast('No se pudo iniciar el control: ' + ((e && e.message) || e)); return; }
+    controlling = true;
+    room.ctl({ t: 'rc-granted' });
+    showToast('Tu técnico está controlando tu equipo. Puedes detenerlo en la barra de arriba.');
   }
 
   // El overlay (barra roja) o el técnico detuvieron el control.
